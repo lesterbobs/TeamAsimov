@@ -183,15 +183,16 @@ class FuzzyController(ControllerBase):
 
                 # Lester's Orientation Calculator
 
+        print(inrange_asteroid)
+        inrange_asteroid = numpy.int64(inrange_asteroid)
+        for m in range(0, astrange):
+            ab2[m] = input_data['asteroids'][inrange_asteroid[m]]['position'][1] - ship.center_y
+            lr2[m] = input_data['asteroids'][inrange_asteroid[m]]['position'][0] - ship.center_x
+            op2[m] = input_data['asteroids'][inrange_asteroid[m]]['position'][0] - ship.center_x
+            hyp2[m] = inrange_distance[m]
+            s_rangle_inrange[m] = self.rangle(op2[m], hyp2[m], ab2[m], lr2[m])
 
-                for m in range(1, astrange):
-                    ab2[m] = input_data['asteroids'][closest_asteroid]['position'][1] - ship.center_y
-                    lr2[m] = input_data['asteroids'][closest_asteroid]['position'][0] - ship.center_x
-                    op2[m] = input_data['asteroids'][closest_asteroid]['position'][0] - ship.center_x
-                    hyp2[m] = inrange_distance[m]
-                    s_rangle_inrange[m] = self.rangle(op2[m], hyp2[m], ab2[m], lr2[m])
-
-                    orientation2[m] = abs(ship.angle - s_rangle_inrange[m])
+            orientation2[m] = abs(ship.angle - s_rangle_inrange[m])
 
 
 
@@ -302,16 +303,20 @@ class FuzzyController(ControllerBase):
         else:
             ship.turn_rate = -90
 
-        print()
-        self.wack += 6000
 
-        for l in range(0, len(orientation2)):
+        """
+        Shooting Mechanism
+        """
+        self.wack += 6000 #wack increases until it reaches a fire threshold
+
+        for l in range(0, len(orientation2)): #runs this once for every asteroid in the ROE zone.
             #print(orientation2)
-            if orientation < 2 or orientation2[l] < 4:
+            if orientation < 2 or orientation2[l] < 4: #
             #if orientation2[l] < 100:
                 #print(orientation2[l])
-                #if orientation2[l] < 10:
+                #if orientation2[l] < 4:
                     #print('TRICK SHOT!')
+                    #ship.shoot()
                 if self.wack > hypotenuse**2:
                     self.wack = 0
                     ship.shoot()
