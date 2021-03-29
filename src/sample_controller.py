@@ -70,14 +70,7 @@ class FuzzyController(ControllerBase):
 
         def leftrightcheck(shipangle, astangle):
 
-            dif = shipangle - astangle
-
-            if dif > 0:
-                correct = 20
-            else:
-                correct = 20
-
-            diff = dif
+            diff = shipangle - astangle
             absdiff = abs(diff)
             if absdiff < 180 and diff > 0:
                 leftright = 1
@@ -124,25 +117,29 @@ class FuzzyController(ControllerBase):
         import skfuzzy.control as ctrl
         import math
         import numpy
-        import random
 
         roe_zone = 200  #Max distance at which the autotargeting system will engage
         roe_size = 1    #Max asteroid size the autotargeting system will engage
-
         astnum = len(input_data['asteroids'])
-        distance = numpy.zeros(astnum)
-        shortest_distance = 1000
-        closest_asteroid = 0
-        total_velocity = abs((ship.velocity[0] ** 2 + ship.velocity[1] ** 2) ** 0.5)
-        if total_velocity > 0:
-            if ship.velocity[1] > 0:
-                travel_angle = -1 * math.degrees(math.asin(ship.velocity[0] / total_velocity))
-            elif ship.velocity[0] > 0:
-                travel_angle = -180 + math.degrees(math.asin(ship.velocity[0] / total_velocity))
-            elif ship.velocity[0] < 0:
-                travel_angle = 180 + math.degrees(math.asin(ship.velocity[0] / total_velocity))
-            else:
-                travel_angle = 0
+
+        if astnum > 0:
+            distance = numpy.zeros(astnum)
+            for p in range (0,astnum):
+                distance[p]=1000
+            shortest_distance=1000
+            closest_asteroid=0
+            astnumo=astnum-1
+            closest_asteroids=[astnumo,astnumo,astnumo,astnumo,astnumo]
+            total_velocity=abs((ship.velocity[0]**2+ship.velocity[1]**2)**0.5)
+            if total_velocity>0:
+                if ship.velocity[1]>0:
+                    travel_angle = -1*math.degrees(math.asin(ship.velocity[0]/ total_velocity))
+                elif ship.velocity[0]>0:
+                    travel_angle = -180 + math.degrees(math.asin(ship.velocity[0] / total_velocity))
+                elif ship.velocity[0]<0:
+                    travel_angle = 180 + math.degrees(math.asin(ship.velocity[0] / total_velocity))
+                else:
+                    travel_angle=0
 
         sidefromcenter = 400 - ship.center_x
         above_center = 300 - ship.center_y
@@ -193,8 +190,6 @@ class FuzzyController(ControllerBase):
             s_rangle_inrange[m] = self.rangle(op2[m], hyp2[m], ab2[m], lr2[m])
 
             orientation2[m] = abs(ship.angle - s_rangle_inrange[m]) #Orientation 2 is the relative angles of all ROE-free asteroids
-
-
 
         abovebelow = input_data['asteroids'][closest_asteroid]['position'][1] - ship.center_y
         leftright = input_data['asteroids'][closest_asteroid]['position'][0] - ship.center_x
@@ -281,6 +276,7 @@ class FuzzyController(ControllerBase):
 
             elif len(input_data['asteroids']) > 3:
 
+
                 self.tr_sim.input['asteroid_num'] = len(input_data['asteroids'])
                 self.tr_sim.compute()
                 ship.turn_rate = self.tr_sim.output['TR']
@@ -290,16 +286,15 @@ class FuzzyController(ControllerBase):
                 ship.turn_rate = 40
 
 
-
-            if leftright == 0 and orientation > 5:
-                ship.turn_rate = 180
-            elif leftright == 0 and orientation <= 5:
-                ship.turn_rate = 90
-            elif leftright == 1 and orientation > 5:
-                ship.turn_rate = -180
-            else:
-                ship.turn_rate = -90
-
+            if leftright == 0 or leftright==1:
+                if leftright == 0 and orientation > 5:
+                    ship.turn_rate = 180
+                elif leftright == 0 and orientation <= 5:
+                    ship.turn_rate = 90
+                elif leftright == 1 and orientation > 5:
+                    ship.turn_rate = -180
+                else:
+                    ship.turn_rate = -90
 
             """
             Shooting Mechanism
