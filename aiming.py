@@ -1,39 +1,36 @@
 import math
 
-print(ship.angle)
-if orientation < 5:
-    ship.shoot()
+def aiming_function(vx, vy, normal_astangle):
 
+    """Lester's Accuracy House of Horrors"""
 
-vx = input_data['asteroids'][closest_asteroid]['velocity'][0]
-vy = input_data['asteroids'][closest_asteroid]['velocity'][1]
-vhyp = math.sqrt(vx ** 2 + xy ** 2)
+    vectang = math.degrees(math.atan2(vy,vx))
 
-bs = 800
-shortest_distance
+    # print(vectang2, vectang, vectang2-vectang)
 
-#Gives angle the asteroid is travelling 0-360
-if vy > 0 and vx > 0:
-    vectdang = math.degrees(math.atan(vy/vx))
-elif vy <= 1 and vx > 0:
-    vectdang = 90 - math.degrees(math.atan(vy/vx))
-elif vy <= 1 and vx <= 0:
-    vectdang = 180 + math.degrees(math.atan(vy/vx))
-elif vy > 1 and vx <= 0:
-    vectdang = 270 - math.degrees(math.atan(vy/vx))
+    sidea = math.sqrt(vx ** 2 + vy ** 2)
+    sideb = 800
 
-castangle = 360 - normal_astangle  # clockwise asteroid angle
+    # Find angle B
+    tsangle = normal_astangle - 90  # This is the ship relative to the asteroid, don't change this if you're looking at it backwards.
+    if tsangle <= 0:
+        tsangle += 360
 
-orientation_obj = ship.angle - s_rangle
+    orientation_ast = (tsangle - vectang)  # Vectang: asteroid travel angle, Trangle: True asteroid angle to ship
 
-# Gives angle the asteroid is traveling relative to the ship
-if castangle < 90:
-    perpangle = castangle-90
-elif castangle < 180 and > 90:
+    if orientation_ast >= 180:
+        orientation_ast = -360 + orientation_ast  # (-1*orientation_ast)+180 #orientation_ast - 360
+    elif orientation_ast <= -180:
+        orientation_ast = 360 + orientation_ast
 
-elif castangle < 270 and > 180:
+    ant_angle = -50 * math.degrees(math.asin(math.sin(math.radians(orientation_ast)) * sidea / sideb))
 
-elif castangle < 360 and >270:
+    """This next line of code can be used to disable anticipatory aiming"""
+    #self.ant_angle = 0
 
-perpect = vhyp / math.radians(perpangle)
+    #print(f"Asteroid Travel Angle            {vectang}")
+    #print(f"Asteroid to Ship Angle (tsangle) {tsangle}")
+    #print(f"Orientation of Asteroid          {orientation_ast}")
+    #print(f"Anticipatory Angle               {self.ant_angle}")
 
+    return ant_angle
