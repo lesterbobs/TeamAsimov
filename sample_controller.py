@@ -231,7 +231,7 @@ class FuzzyController(ControllerBase):
             elif vy < 1 and vx >= 0:
                 vectang = 360 + math.degrees(math.atan(vy / vx))
 
-            #vectang2 = math.degrees(math.atan2(vy,vx))
+            #vectang = math.degrees(math.atan2(vy,vx))
 
             #print(vectang2, vectang, vectang2-vectang)
 
@@ -239,31 +239,30 @@ class FuzzyController(ControllerBase):
             sideb = 800
 
             #Find angle B
-            trangle = normal_astangle - 90 #This is the ship relative to the asteroid, don't change this if you're looking at it backwards. This used to be normal_astangle.
-            if trangle <= 0:
-                trangle += 360
+            tsangle = normal_astangle - 90 #This is the ship relative to the asteroid, don't change this if you're looking at it backwards.
+            if tsangle <= 0:
+                tsangle += 360
 
-            orientation_ast = (trangle - vectang) #Vectang: asteroid travel angle, Trangle: True asteroid angle to ship
+            orientation_ast = (tsangle - vectang) #Vectang: asteroid travel angle, Trangle: True asteroid angle to ship
 
-            if orientation_ast > 180:
-                orientation_ast = (-1*orientation_ast)+180 #orientation_ast - 360
-            elif orientation_ast < -180:
-                orientation_ast = (-1*orientation_ast)-180 #orientation_ast + 360
+            if orientation_ast >= 180:
+                orientation_ast = -360 + orientation_ast #(-1*orientation_ast)+180 #orientation_ast - 360
+            elif orientation_ast <= -180:
+                orientation_ast = 360 + orientation_ast
 
-            self.ant_angle = -40 * math.degrees(math.asin(math.sin(math.radians(orientation_ast)*sidea/sideb)))
+            self.ant_angle = -50 * math.degrees(math.asin(math.sin(math.radians(orientation_ast))*sidea/sideb))
 
             """This next line of code can be used to disable anticipatory aiming"""
-            self.ant_angle = 0
+            #self.ant_angle = 0
 
             ant_orientation = abs(ship.angle - s_rangle + self.ant_angle)
 
             #print(f"vx, vy                     {vx,vy}")
             #print(f"Tan Math:                  {math.degrees(math.atan(vy / vx))}")
-            print(f"Asteroid Travel Angle      {vectang}")
-            print(f"S Rangle                   {s_rangle}")
-            print(f"Ship angle from asteroid   {trangle}")
-            print(f"Orientation of Asteroid    {orientation_ast}")
-            #print(f"Anticipatory Angle         {self.ant_angle}")
+            print(f"Asteroid Travel Angle            {vectang}")
+            print(f"Asteroid to Ship Angle (tsangle) {tsangle}")
+            print(f"Orientation of Asteroid          {orientation_ast}")
+            print(f"Anticipatory Angle               {self.ant_angle}")
             #print(f"Anticipatory Orientation   {ant_orientation}")
 
             """
@@ -291,7 +290,7 @@ class FuzzyController(ControllerBase):
                 if total_velocity > 1 + (hypotenuse/200):  #Braking Speed Determinant, considers hypotenuse (distance to nearest asteroid)
 
                     """
-                    Braking Manuever- For if the ship is going to fast. Probably best for when there's a lot of 
+                    Braking Maneuever- For if the ship is going to fast. Probably best for when there's a lot of 
                     asteroids and you do you don't want it to slingshot past on into another
                     """
 
@@ -358,7 +357,7 @@ class FuzzyController(ControllerBase):
                 """
                 Shooting Mechanism
                 """
-                self.wack += 50 #wack increases until it reaches the fire threshold, ~4000 is optimal for exponentials
+                self.wack += 30 #wack increases until it reaches the fire threshold, ~4000 is optimal for exponentials
 
                 for l in range(0, len(orientation2)): #runs this once for every asteroid in the ROE zone.
 
