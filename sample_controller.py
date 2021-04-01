@@ -1,7 +1,7 @@
 from typing import Tuple, Dict, Any
 
 from fuzzy_asteroids.fuzzy_controller import ControllerBase, SpaceShip
-
+from aiming import aiming_function
 
 class FuzzyController(ControllerBase):
     """
@@ -162,7 +162,6 @@ class FuzzyController(ControllerBase):
             inrange_distance = numpy.zeros(astnum)
             inrange_asteroid = numpy.zeros(astnum)
             astrange = 0
-
             ab2 = numpy.zeros(100)
             lr2 = numpy.zeros(100)
             op2 = numpy.zeros(100)
@@ -179,11 +178,11 @@ class FuzzyController(ControllerBase):
                     closest_asteroid = n
 
                 #Distance-based multitasking
-                elif distance[n] < roe_zone and input_data['asteroids'][n]['size'] <= roe_size: #Variables defined above
+                if distance[n] < roe_zone and input_data['asteroids'][n]['size'] <= roe_size: #Variables defined above
                     inrange_distance[astrange] = distance[n]
                     inrange_asteroid[astrange] = n
                     astrange += 1
-
+            print(inrange_distance)
             #Orientation Calculator
             inrange_asteroid = numpy.int64(inrange_asteroid)    #Converts numpy float to integer (could be streamlined)
             for m in range(0, astrange):
@@ -193,7 +192,13 @@ class FuzzyController(ControllerBase):
                 hyp2[m] = inrange_distance[m]
                 s_rangle_inrange[m] = self.rangle(op2[m], hyp2[m], ab2[m], lr2[m])
 
-                orientation2[m] = abs(ship.angle - s_rangle_inrange[m]) #Orientation 2 is the relative angles of all ROE-free asteroids
+                normal_astangle_mult = self.norm(s_rangle_inrange[m])
+
+                vx_mult = input_data['asteroids'][inrange_asteroid[m]]['velocity'][0]
+                vy_mult = input_data['asteroids'][inrange_asteroid[m]]['velocity'][1]
+
+                ant_angle2 = aiming_function(vx_mult, vy_mult, normal_astangle_mult)
+                orientation2[m] = abs(ship.angle - s_rangle_inrange[m] + ant_angle2) #Orientation 2 is the relative angles of all ROE-free asteroids
 
             abovebelow = input_data['asteroids'][closest_asteroid]['position'][1] - ship.center_y
             leftright = input_data['asteroids'][closest_asteroid]['position'][0] - ship.center_x
@@ -214,64 +219,18 @@ class FuzzyController(ControllerBase):
             normal_astangle = self.norm(s_rangle)
             normal_cangle = self.norm(anglefromcenter)
 
+            vx_main = input_data['asteroids'][closest_asteroid]['velocity'][0]
+            vy_main = input_data['asteroids'][closest_asteroid]['velocity'][1]
 
 
-            """BEWARE: Lester's Accuracy House of Horrors"""
+            """This calls aiming.py and outputs the annticipatory angle (Positive = Right, Negative = Left"""
+            self.ant_angle = aiming_function(vx_main,vy_main,normal_astangle)
+            best_orientation = abs(ship.angle - s_rangle + self.ant_angle)
 
-            vx = input_data['asteroids'][closest_asteroid]['velocity'][0]
-            vy = input_data['asteroids'][closest_asteroid]['velocity'][1]
 
-            # Gives angle the asteroid is travelling 0-360
-            if vy > 0 and vx > 0:
-                vectang = math.degrees(math.atan(vy / vx))
-            elif vy >= 1 and vx < 0:
-                vectang = 180 + math.degrees(math.atan(vy / vx))
-            elif vy <= 1 and vx <= 0:
-                vectang = 180 + math.degrees(math.atan(vy / vx))
-            elif vy < 1 and vx >= 0:
-                vectang = 360 + math.degrees(math.atan(vy / vx))
-
-            #vectang = math.degrees(math.atan2(vy,vx))
-
-            #print(vectang2, vectang, vectang2-vectang)
-
-            sidea = math.sqrt(vx ** 2 + vy ** 2)
-            sideb = 800
-
-            #Find angle B
-            tsangle = normal_astangle - 90 #This is the ship relative to the asteroid, don't change this if you're looking at it backwards.
-            if tsangle <= 0:
-                tsangle += 360
-
-            orientation_ast = (tsangle - vectang) #Vectang: asteroid travel angle, Trangle: True asteroid angle to ship
-
-            if orientation_ast >= 180:
-                orientation_ast = -360 + orientation_ast #(-1*orientation_ast)+180 #orientation_ast - 360
-            elif orientation_ast <= -180:
-                orientation_ast = 360 + orientation_ast
-
-            self.ant_angle = -50 * math.degrees(math.asin(math.sin(math.radians(orientation_ast))*sidea/sideb))
-
-            """This next line of code can be used to disable anticipatory aiming"""
-            #self.ant_angle = 0
-
-            ant_orientation = abs(ship.angle - s_rangle + self.ant_angle)
-
-            #print(f"vx, vy                     {vx,vy}")
-            #print(f"Tan Math:                  {math.degrees(math.atan(vy / vx))}")
-            print(f"Asteroid Travel Angle            {vectang}")
-            print(f"Asteroid to Ship Angle (tsangle) {tsangle}")
-            print(f"Orientation of Asteroid          {orientation_ast}")
-            print(f"Anticipatory Angle               {self.ant_angle}")
-            #print(f"Anticipatory Orientation   {ant_orientation}")
-
-            """
-            You have escaped. Now enjoy some left-righting:
-            """
 
             leftright = self.leftright(normal_shipangle, normal_astangle)
             clast_size = input_data['asteroids'][closest_asteroid]['size']
-
 
             """
             This is the master 'if' function in which it determines which behavior mode to fall into 
@@ -345,11 +304,11 @@ class FuzzyController(ControllerBase):
                     ship.thrust = ship.thrust_range[1]
 
                 if leftright == 0 or leftright==1:
-                    if leftright == 0 and ant_orientation > 3:
+                    if leftright == 0 and best_orientation > 3:
                         ship.turn_rate = 180
-                    elif leftright == 0 and ant_orientation <= 3:
+                    elif leftright == 0 and best_orientation <= 3:
                         ship.turn_rate = 90
-                    elif leftright == 1 and ant_orientation > 3:
+                    elif leftright == 1 and best_orientation > 3:
                         ship.turn_rate = -180
                     else:
                         ship.turn_rate = -90
@@ -357,11 +316,11 @@ class FuzzyController(ControllerBase):
                 """
                 Shooting Mechanism
                 """
-                self.wack += 30 #wack increases until it reaches the fire threshold, ~4000 is optimal for exponentials
+                self.wack += 50 #wack increases until it reaches the fire threshold, ~4000 is optimal for exponentials
+                print(best_orientation)
+                for l in range(0, astrange+1): #runs this once for every asteroid in the ROE zone.
 
-                for l in range(0, len(orientation2)): #runs this once for every asteroid in the ROE zone.
-
-                    if ant_orientation < 1 * clast_size or orientation2[l] < 1:
+                    if best_orientation < 1 * clast_size or orientation2[l] < 1:
                         if self.wack > hypotenuse:
                             self.wack = 0
                             ship.shoot()
