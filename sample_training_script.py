@@ -12,7 +12,7 @@ from evaluator import evalscore
 if __name__ == "__main__":
     # Available settings
     settings = {
-        "graphics_on": True,
+        "graphics_on": False,
         "sound_on": False,
         # "frequency": 60,
         "real_time_multiplier": 200,
