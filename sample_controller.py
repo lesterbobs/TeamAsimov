@@ -35,7 +35,7 @@ class FuzzyController(ControllerBase):
         """
         self.roe_zone = individual[36] / 1000 * 500
         # Maximum Distance for Multitasking, Default: 240
-        self.fuzzy_roe = individual[37] / 1000 * 250
+        self.fuzzy_roe = individual[37] / 1000 * self.roe_zone
         # Minimum Distance for Fuzzy application, Default: 120
         self.wack_coef = individual[38] / 1000 * 200
         # Controls Rate of Fire, considering distance. 10 is 1 per target, Default: 100
@@ -1399,13 +1399,13 @@ class FuzzyController(ControllerBase):
 
                 for l in range(0, len(orientation2)):  # runs this once for every asteroid in the ROE zone.
                     if dodge_counter == 0:
-                        if orientation < 2 * clast_size or orientation2[l] < 2:
+                        if orientation < 3 * clast_size or orientation2[l] < 3:
 
                             if self.wack > Target_Distance:
                                 self.wack = 0
                                 ship.shoot()
                     else:
-                        if Target_orientation < 2 * clast_size or orientation2[l] < 2:
+                        if Target_orientation < 3 * clast_size or orientation2[l] < 3:
 
                             if self.wack > Target_Distance:
                                 self.wack = 0
