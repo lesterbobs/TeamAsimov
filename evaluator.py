@@ -1,6 +1,8 @@
 from fuzzy_asteroids.fuzzy_asteroids import TrainerEnvironment
 from typing import Tuple, Dict, Any
 from aiming import aiming_function
+import skfuzzy as fuzz
+import skfuzzy.control as ctrl
 from fuzzy_asteroids.fuzzy_controller import ControllerBase, SpaceShip
 import numpy
 
@@ -29,16 +31,18 @@ def evalscore(individual):
         """
 
         def __init__(self):
-            print('run start')
             """
             Create your fuzzy logic controllers and other objects here
             """
-            import skfuzzy as fuzz
-            import skfuzzy.control as ctrl
-            import numpy
-            self.hi = 30
+            print('run initiated')
             self.wack = 0
-            self.roe_zone = individual[0] / 1000 * 300
+            """
+            Gene Constants
+            """
+            self.roe_zone = 240
+            self.fuzzy_roe = 120
+            self.wack_coef = 100
+
             """
             Checking the asteroid angle relative to the ship
             """
@@ -75,6 +79,7 @@ def evalscore(individual):
                 return new_angle
 
             self.norm = norm
+
             """
             Function That Tells You Whether Rotating Left or Right to the asteroid is faster
             0 is left, 1 is right
@@ -82,8 +87,7 @@ def evalscore(individual):
             """
 
             def leftrightcheck(shipangle, astangle):
-
-                diff = shipangle - astangle
+                diff = shipangle - astangle + self.ant_angle
                 absdiff = abs(diff)
                 if absdiff < 180 and diff > 0:
                     leftright = 1
@@ -101,35 +105,21 @@ def evalscore(individual):
             self.leftright = leftrightcheck
 
             """
-            Chaffe Clearing Rotation Controller
-            """
-
-            asteroid_num = ctrl.Antecedent(numpy.arange(0, 61, 1), 'asteroid_num')
-            names = ['low', 'avg', 'high']
-            asteroid_num.automf(names=names)
-            TR = ctrl.Consequent(numpy.arange(-91, 271, 1), 'TR')
-            TR.automf(names=names)
-            tr_rule0 = ctrl.Rule(antecedent=(asteroid_num['low']), consequent=TR['low'], label='tr_rule_0')
-            tr_rule1 = ctrl.Rule(antecedent=(asteroid_num['avg']), consequent=TR['avg'], label='tr_rule_1')
-            tr_rule2 = ctrl.Rule(antecedent=(asteroid_num['high']), consequent=TR['high'], label='tr_rule_2')
-            tr_system = ctrl.ControlSystem(rules=[tr_rule0, tr_rule1, tr_rule2])
-            self.tr_sim = ctrl.ControlSystemSimulation(tr_system)
-            """
             Asteroid Selecting Fuzzy System
             For simplicity of code (Not necessarily Compactness I'm going to code one fuzzy system for each size class)
             Finds Favorability 
             """
             # For Size 1
             f_orientation_size1 = ctrl.Antecedent(numpy.arange(-91, 271, 1), 'f_orientation_size1')
-            names = ['Imminent', 'Close', 'Far']
-
             f_orientation_size1['In Sights'] = fuzz.trimf(f_orientation_size1.universe, [-15, 0, 15])
             f_orientation_size1['Close'] = fuzz.trimf(f_orientation_size1.universe, [15, 45, 75])
             f_orientation_size1['Far'] = fuzz.trimf(f_orientation_size1.universe, [75, 180, 285])
+
             # shortest_distance < 50 + (12 * clast_size)
-            f_hypotenuse_size1 = ctrl.Antecedent(numpy.arange(0, self.roe_zone, 1), 'f_hypotenuse_size1')
+            names = ['Imminent', 'Close', 'Far']
+            f_hypotenuse_size1 = ctrl.Antecedent(numpy.arange(0, self.roe_zone + 1, 1), 'f_hypotenuse_size1')
             f_hypotenuse_size1.automf(names=names)
-            """
+            """"
             f_hypotenuse_size1['Imminent'] = fuzz.trimf(f_hypotenuse_size1.universe, [-80, 0, 80])
             f_hypotenuse_size1['Close'] = fuzz.trimf(f_hypotenuse_size1.universe, [80, 140, 200])
             f_hypotenuse_size1['Far'] = fuzz.trimf(f_hypotenuse_size1.universe, [140, 200, 260])
@@ -142,9 +132,8 @@ def evalscore(individual):
             Target_F1['High'] = fuzz.trimf(Target_F1.universe, [50, 75, 100])
             Target_F1['Very High'] = fuzz.trimf(Target_F1.universe, [75, 100, 125])
 
-            Target_F1_rule1 = ctrl.Rule(
-                antecedent=(f_hypotenuse_size1['Imminent'] & f_orientation_size1['In Sights']),
-                consequent=Target_F1['Very High'], label='Target_F1_rule1')
+            Target_F1_rule1 = ctrl.Rule(antecedent=(f_hypotenuse_size1['Imminent'] & f_orientation_size1['In Sights']),
+                                        consequent=Target_F1['Very High'], label='Target_F1_rule1')
 
             Target_F1_rule2 = ctrl.Rule(antecedent=(f_hypotenuse_size1['Close'] & f_orientation_size1['In Sights']),
                                         consequent=Target_F1['High'], label='Target_F1_rule2')
@@ -183,12 +172,11 @@ def evalscore(individual):
             """
             # For Size 2
             f_orientation_size2 = ctrl.Antecedent(numpy.arange(-91, 271, 1), 'f_orientation_size2')
-
             f_orientation_size2['In Sights'] = fuzz.trimf(f_orientation_size2.universe, [-15, 0, 15])
             f_orientation_size2['Close'] = fuzz.trimf(f_orientation_size2.universe, [15, 45, 75])
             f_orientation_size2['Far'] = fuzz.trimf(f_orientation_size2.universe, [75, 180, 285])
             # shortest_distance < 50 + (12 * clast_size)
-            f_hypotenuse_size2 = ctrl.Antecedent(numpy.arange(0, self.roe_zone+1, 1), 'f_hypotenuse_size2')
+            f_hypotenuse_size2 = ctrl.Antecedent(numpy.arange(0, self.roe_zone + 1, 1), 'f_hypotenuse_size2')
             f_hypotenuse_size2.automf(names=names)
             """
             f_hypotenuse_size2['Imminent'] = fuzz.trimf(f_hypotenuse_size2.universe, [-80, 0, 80])
@@ -203,9 +191,8 @@ def evalscore(individual):
             Target_F2['High'] = fuzz.trimf(Target_F2.universe, [50, 75, 100])
             Target_F2['Very High'] = fuzz.trimf(Target_F2.universe, [75, 100, 125])
 
-            Target_F2_rule1 = ctrl.Rule(
-                antecedent=(f_hypotenuse_size2['Imminent'] & f_orientation_size2['In Sights']),
-                consequent=Target_F2['Very High'], label='Target_F2_rule1')
+            Target_F2_rule1 = ctrl.Rule(antecedent=(f_hypotenuse_size2['Imminent'] & f_orientation_size2['In Sights']),
+                                        consequent=Target_F2['Very High'], label='Target_F2_rule1')
 
             Target_F2_rule2 = ctrl.Rule(antecedent=(f_hypotenuse_size2['Close'] & f_orientation_size2['In Sights']),
                                         consequent=Target_F2['High'], label='Target_F2_rule2')
@@ -258,9 +245,8 @@ def evalscore(individual):
             Target_F3['High'] = fuzz.trimf(Target_F3.universe, [50, 75, 100])
             Target_F3['Very High'] = fuzz.trimf(Target_F3.universe, [75, 100, 125])
 
-            Target_F3_rule1 = ctrl.Rule(
-                antecedent=(f_hypotenuse_size3['Imminent'] & f_orientation_size3['In Sights']),
-                consequent=Target_F3['Very High'], label='Target_F3_rule1')
+            Target_F3_rule1 = ctrl.Rule(antecedent=(f_hypotenuse_size3['Imminent'] & f_orientation_size3['In Sights']),
+                                        consequent=Target_F3['Very High'], label='Target_F3_rule1')
 
             Target_F3_rule2 = ctrl.Rule(antecedent=(f_hypotenuse_size3['Close'] & f_orientation_size3['In Sights']),
                                         consequent=Target_F3['High'], label='Target_F3_rule2')
@@ -313,9 +299,8 @@ def evalscore(individual):
             Target_F4['High'] = fuzz.trimf(Target_F4.universe, [50, 75, 100])
             Target_F4['Very High'] = fuzz.trimf(Target_F4.universe, [75, 100, 125])
 
-            Target_F4_rule1 = ctrl.Rule(
-                antecedent=(f_hypotenuse_size4['Imminent'] & f_orientation_size4['In Sights']),
-                consequent=Target_F4['Very High'], label='Target_F4_rule1')
+            Target_F4_rule1 = ctrl.Rule(antecedent=(f_hypotenuse_size4['Imminent'] & f_orientation_size4['In Sights']),
+                                        consequent=Target_F4['Very High'], label='Target_F4_rule1')
 
             Target_F4_rule2 = ctrl.Rule(antecedent=(f_hypotenuse_size4['Close'] & f_orientation_size4['In Sights']),
                                         consequent=Target_F4['High'], label='Target_F4_rule2')
@@ -360,9 +345,9 @@ def evalscore(individual):
             import skfuzzy.control as ctrl
             import math
             import numpy
+            roe_zone = self.roe_zone  # Max distance at which the autotargeting system will engage
+            roe_size = 1  # Max asteroid size the autotargeting system will engage
 
-            roe_zone = self.roe_zone
-            roe_size = 2  # Max asteroid size the autotargeting system will engage
             astnum = len(input_data['asteroids'])
             if astnum > 0:
                 distance = numpy.zeros(astnum)
@@ -418,7 +403,7 @@ def evalscore(individual):
                         closest_asteroid = n
 
                     # Distance-based multitasking
-                    elif distance[n] < roe_zone and input_data['asteroids'][n][
+                    if distance[n] < roe_zone and input_data['asteroids'][n][
                         'size'] <= roe_size:  # Variables defined above
                         inrange_distance[astrange] = distance[n]
                         inrange_asteroid[astrange] = n
@@ -437,10 +422,14 @@ def evalscore(individual):
                     op2[m] = input_data['asteroids'][inrange_asteroid[m]]['position'][0] - ship.center_x
                     hyp2[m] = inrange_distance[m]
                     s_rangle_inrange[m] = self.rangle(op2[m], hyp2[m], ab2[m], lr2[m])
+                    normal_astangle_mult = self.norm(s_rangle_inrange[m])
+                    vx_mult = input_data['asteroids'][closest_asteroid]['velocity'][0]
+                    vy_mult = input_data['asteroids'][closest_asteroid]['velocity'][1]
 
-                    orientation2[m] = abs(
-                        ship.angle - s_rangle_inrange[
-                            m])  # Orientation 2 is the relative angles of all ROE-free asteroids
+                    ant_angle2 = aiming_function(vx_mult, vy_mult, normal_astangle_mult)
+                    Target_orientation = abs(ship.angle - s_rangle_inrange[m] + ant_angle2)
+                    orientation2[m] = abs(ship.angle - s_rangle_inrange[
+                        m] + ant_angle2)  # Orientation 2 is the relative angles of all ROE-free asteroids
                     if inrange_size[m] == 4:
                         self.Target_F4_sim.input['f_orientation_size4'] = orientation2[m]
                         self.Target_F4_sim.input['f_hypotenuse_size4'] = inrange_distance[m]
@@ -476,25 +465,26 @@ def evalscore(individual):
                 s_rangle = self.rangle(opposite, hypotenuse, abovebelow, leftright)
                 orientation = abs(ship.angle - s_rangle)
                 if bloop > 0:
-                    if inrange_size[Target] < 4:
+                    if inrange_size[Target] < 4 and shortest_distance > self.fuzzy_roe:
                         Target_orientation = orientation2[Target]
                         Target_angle = s_rangle_inrange[Target]
                         Target_Distance = inrange_distance[Target]
-                        Target_size = inrange_size[Target]
-                        Target_Favorability = Favorability[m]
+                        # Target_size = inrange_size[Target]
+                        # Target_Favorability = Favorability[m]
 
                     else:
                         Target_orientation = orientation
                         Target_angle = s_rangle
                         Target_Distance = shortest_distance
-                        Target_size = input_data['asteroids'][closest_asteroid]['size']
-                        Target_Favorability = 0
+                        # Target_size = input_data['asteroids'][closest_asteroid]['size']
+                        # Target_Favorability = 0
                 elif bloop == 0:
                     Target_orientation = orientation
                     Target_angle = s_rangle
                     Target_Distance = shortest_distance
-                    Target_size = input_data['asteroids'][closest_asteroid]['size']
-                    Target_Favorability = 0
+                    # Target_size = input_data['asteroids'][closest_asteroid]['size']
+                    # Target_Favorability = 0
+
                 """
                 s_rangle is the angle relative to the ship necessary for the ship to point at the closest asteroid
                 """
@@ -506,10 +496,27 @@ def evalscore(individual):
                 normal_cangle = self.norm(anglefromcenter)
                 normal_target_angle = self.norm(Target_angle)
                 diff = ship.angle - s_rangle
-                leftright_dodge = self.leftright(normal_shipangle, normal_astangle)
-                leftright_target = self.leftright(normal_shipangle, normal_target_angle)
                 clast_size = input_data['asteroids'][closest_asteroid]['size']
                 dodge_counter = 0
+                if Target_orientation == orientation:
+                    vx_mult = input_data['asteroids'][closest_asteroid]['velocity'][0]
+                    vy_mult = input_data['asteroids'][closest_asteroid]['velocity'][1]
+
+                    self.ant_angle = aiming_function(vx_mult, vy_mult, normal_astangle)
+                    Target_orientation = abs(ship.angle - s_rangle + self.ant_angle)
+                    leftright_target = self.leftright(normal_shipangle, normal_target_angle)
+                else:
+                    vx_mult = input_data['asteroids'][inrange_asteroid[Target]]['velocity'][0]
+                    vy_mult = input_data['asteroids'][inrange_asteroid[Target]]['velocity'][1]
+                    Target_s_rangle = s_rangle_inrange[Target]
+                    Target_normal_astangle = self.norm(Target_s_rangle)
+                    self.ant_angle = aiming_function(vx_mult, vy_mult, Target_normal_astangle)
+                    Target_orientation = abs(ship.angle - Target_s_rangle + self.ant_angle)
+                    leftright_target = self.leftright(normal_shipangle, normal_target_angle)
+                vx_mult = input_data['asteroids'][closest_asteroid]['velocity'][0]
+                vy_mult = input_data['asteroids'][closest_asteroid]['velocity'][1]
+                self.ant_angle = aiming_function(vx_mult, vy_mult, normal_astangle)
+                leftright_dodge = self.leftright(normal_shipangle, normal_astangle)
                 """
                 This is the master if function in which it determines which behavior mode to fall into 
                 """
@@ -523,7 +530,7 @@ def evalscore(individual):
 
                 else:
 
-                    if total_velocity > 1 + (shortest_distance / 260):  # Braking Speed Determinant
+                    if total_velocity > 1 + (shortest_distance / 250):  # Braking Speed Determinant
 
                         """
                         Braking Manuever- For if the ship is going to fast. Probably best for when there's a lot of 
@@ -540,16 +547,16 @@ def evalscore(individual):
                         else:
                             print('something wonky afoot')
 
-                    elif shortest_distance < 45 + (15 * clast_size):
+                    elif shortest_distance < 45 + (18 * clast_size):
                         """Evasive Manuevers, I think we could expand this to considering the closest three 
                             asteroids and fuzzily deciding which direction to flee in
 
                             for cases where an asteroid is perpindicularly approaching it needs to be able to distinguish left and right anf
                             behave accordingly """
                         dodge_counter = 1
-                        if orientation > 100:
+                        if orientation > 90:
                             ship.thrust = ship.thrust_range[1]
-                        elif orientation > 60 and orientation < 100:
+                        elif orientation > 90 and orientation < 90:
                             ship.thrust = 0
                         else:
                             ship.thrust = ship.thrust_range[0]
@@ -567,7 +574,7 @@ def evalscore(individual):
                     elif ship.center_x > 600 or ship.center_x < 200 or ship.center_y > 400 or ship.center_y < 200:
                         turn = self.leftright(normal_shipangle, normal_cangle)
                         center_orientation = abs(ship.angle - anglefromcenter)
-                        if center_orientation < 60:
+                        if center_orientation < 150:
                             ship.thrust = ship.thrust_range[1]
                         elif turn == 0:
                             ship.turn_rate = 180
@@ -580,7 +587,7 @@ def evalscore(individual):
                         ship.thrust = ship.thrust_range[1]
                         """
                     # Search and Destroy Also Aiming for Target, will probs give it aiming for dodging
-                    elif Target_Distance > 50 + (62 * clast_size) and dodge_counter == 0:
+                    elif shortest_distance > 50 + (62 * clast_size) and dodge_counter == 0:
                         ship.thrust = ship.thrust_range[1]
 
                     if leftright_target == 0 or leftright_target == 1:
@@ -596,23 +603,22 @@ def evalscore(individual):
                     """
                     Shooting Mechanism
                     """
-                    self.wack += 4000  # wack increases until it reaches a fire threshold
+                    self.wack += self.wack_coef  # wack increases until it reaches a fire threshold
 
                     for l in range(0, len(orientation2)):  # runs this once for every asteroid in the ROE zone.
                         # print(orientation2)
-                        if orientation < 1 or orientation2[l] < 1:  #
-                            # if orientation2[l] < 100:
-                            # print(orientation2[l])
-                            # if orientation2[l] < 4:
-                            # print('TRICK SHOT!')
-                            # ship.shoot()
-                            """
-                            if Target_Favorability<0.1 and Target_size==4 and astnum>50:
-                                pass
-                            """
-                            if self.wack > Target_Distance ** 2:
-                                self.wack = 0
-                                ship.shoot()
+                        if dodge_counter == 0:
+                            if orientation < 1 * clast_size or orientation2[l] < 1:
+
+                                if self.wack > Target_Distance:
+                                    self.wack = 0
+                                    ship.shoot()
+                        else:
+                            if Target_orientation < 1 * clast_size or orientation2[l] < 1:
+
+                                if self.wack > Target_Distance:
+                                    self.wack = 0
+                                    ship.shoot()
 
 
     game = TrainerEnvironment(settings=settings)
