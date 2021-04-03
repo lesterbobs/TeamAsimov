@@ -9,7 +9,7 @@ import numpy
 # the goal ('fitness') function to be maximized
 def evalscore(individual):
     settings = {
-        "graphics_on": True,
+        "graphics_on": False,
         "sound_on": False,
         # "frequency": 60,
         "real_time_multiplier": 200,
@@ -39,9 +39,14 @@ def evalscore(individual):
             """
             Gene Constants
             """
-            self.roe_zone = 240
-            self.fuzzy_roe = 120
-            self.wack_coef = 100
+            self.roe_zone = individual[0] / 1000 * 500 # Maximum Distance for Multitasking, Default: 240
+            self.fuzzy_roe = individual[1] / 1000 * 250 # Minimum Distance for Fuzzy application, Default: 120
+            self.wack_coef = individual[2] / 1000 * 200 # Controls Rate of Fire, considering distance. 10 is 1 per target, Default: 100
+            self.brake_speed_power = individual[3] / 1000 * 500 # Controls Speed at which the craft will not exceed. Variable by size. Default: 250, lower is faster.
+            self.SAD_base = individual[4] / 1000 * 100 # S&D closeness to target, base. Default: 50
+            self.SAD_size_adjust = individual[5] / 1000 * 100# S&D closeness to target, varies with size. Default: 62
+            self.evasive_base = individual[6] / 1000 * 100 # Closeness where evasive behavior is triggered. Default: 45
+            self.evasive_size_adjust = individual[7] / 1000 * 50 # Closeness to where evasive behavior is triggered. Variable by size. Default: 20
 
             """
             Checking the asteroid angle relative to the ship
@@ -60,11 +65,7 @@ def evalscore(individual):
                 return angle
 
             self.rangle = r_angle
-            """
-            Defensively shooting at an approaching asteroid, 
-            I think for defensive shooting we could have it intentionally over shoot by turning too fast 
-            as to simulate leading the shot
-            """
+
             """
             Angle Normalizer if the difference is greater than 180 or less
             """
@@ -386,13 +387,13 @@ def evalscore(individual):
                 inrange_size = numpy.zeros(astnum)
                 astrange = 0
 
-                ab2 = numpy.zeros(100)
-                lr2 = numpy.zeros(100)
-                op2 = numpy.zeros(100)
-                hyp2 = numpy.zeros(100)
-                s_rangle_inrange = numpy.zeros(100)
+                ab2 = numpy.zeros(200)
+                lr2 = numpy.zeros(200)
+                op2 = numpy.zeros(200)
+                hyp2 = numpy.zeros(200)
+                s_rangle_inrange = numpy.zeros(200)
 
-                orientation2 = numpy.ones(100) * 100
+                orientation2 = numpy.ones(200) * 100
 
                 # Distance Finding Every Asteroids
                 for n in range(0, astnum):
@@ -530,7 +531,7 @@ def evalscore(individual):
 
                 else:
 
-                    if total_velocity > 1 + (shortest_distance / 250):  # Braking Speed Determinant
+                    if total_velocity > 1 + (shortest_distance / self.brake_speed_power):  # Braking Speed Determinant
 
                         """
                         Braking Manuever- For if the ship is going to fast. Probably best for when there's a lot of 
@@ -547,7 +548,7 @@ def evalscore(individual):
                         else:
                             print('something wonky afoot')
 
-                    elif shortest_distance < 45 + (18 * clast_size):
+                    elif shortest_distance < self.evasive_base + (self.evasive_size_adjust * clast_size):
                         """Evasive Manuevers, I think we could expand this to considering the closest three 
                             asteroids and fuzzily deciding which direction to flee in
 
@@ -587,7 +588,7 @@ def evalscore(individual):
                         ship.thrust = ship.thrust_range[1]
                         """
                     # Search and Destroy Also Aiming for Target, will probs give it aiming for dodging
-                    elif shortest_distance > 50 + (62 * clast_size) and dodge_counter == 0:
+                    elif shortest_distance > self.SAD_base + (self.SAD_size_adjust * clast_size) and dodge_counter == 0:
                         ship.thrust = ship.thrust_range[1]
 
                     if leftright_target == 0 or leftright_target == 1:
@@ -606,7 +607,6 @@ def evalscore(individual):
                     self.wack += self.wack_coef  # wack increases until it reaches a fire threshold
 
                     for l in range(0, len(orientation2)):  # runs this once for every asteroid in the ROE zone.
-                        # print(orientation2)
                         if dodge_counter == 0:
                             if orientation < 1 * clast_size or orientation2[l] < 1:
 
