@@ -40,7 +40,7 @@ if __name__ == "__main__":
     #                         define 'individual' to be an individual
     #                         consisting of 100 'attr_bool' elements ('genes')
     toolbox.register("individual", tools.initRepeat, creator.Individual,
-                     toolbox.attr_output, 5)
+                     toolbox.attr_output, 44)
 
     # define the population to be a list of individuals
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -78,14 +78,14 @@ if __name__ == "__main__":
 
         # create an initial population of 300 individuals (where
         # each individual is a list of integers)
-        pop = toolbox.population(n=10)
+        pop = toolbox.population(n=15)
         hof_overall = tools.selBest(pop, 1)[0]
 
         # CXPB  is the probability with which two individuals
         #       are crossed
         #
         # MUTPB is the probability for mutating an individual
-        CXPB, MUTPB = 0.5, 0.2
+        CXPB, MUTPB = 0.5, 0.15
 
         print("Start of evolution")
 
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         g = 0
 
         # Begin the evolution
-        while g < 10:
+        while g < 20:
             # A new generation
             g = g + 1
             print("-- Generation %i --" % g)
@@ -177,6 +177,5 @@ if __name__ == "__main__":
         # Call run() on an instance of the TrainerEnvironment
         # This function automatically manages cleanup
         score = game.run(controller=FuzzyController(ControllerBase,individual), score=SampleScore())
-
         print(f"Generation {i}: {str(score)}")
     """
