@@ -1419,7 +1419,7 @@ def evalscore(individual):
                                     ship.shoot()
 
     fitness=0
-    for b in range(0,1):
+    for b in range(0,2):
         game = TrainerEnvironment(settings=settings)
         score = game.run(controller=FuzzyController())
         if score.deaths==0:
