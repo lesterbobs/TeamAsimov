@@ -42,7 +42,7 @@ def evalscore(individual):
             """
             self.roe_zone = individual[36] / 1000 * 500
             # Maximum Distance for Multitasking, Default: 240
-            self.fuzzy_roe = individual[37] / 1000 * 250
+            self.fuzzy_roe = individual[37] / 1000 * self.roe_zone
             # Minimum Distance for Fuzzy application, Default: 120
             self.wack_coef = individual[38] / 1000 * 200
             # Controls Rate of Fire, considering distance. 10 is 1 per target, Default: 100
